@@ -1,3 +1,4 @@
+import sys
 from scapy.all import sniff
 
 # Function to parse Ethernet header from hex data
@@ -107,4 +108,14 @@ def capture_packets(interface, capture_filter, packet_count):
     print(f"Starting packet capture on {interface} with filter: {capture_filter}")
     sniff(iface=interface, filter=capture_filter, prn=packet_callback, count=packet_count)
 
-capture_packets('wlp2s0', 'arp or tcp or udp', 5)
+# Main function
+if __name__ == '__main__':
+    if len(sys.argv) < 4:
+        print("Usage: python3 scanner.py <filter> <interface> <packet_count>")
+        sys.exit(1)
+
+    filter_arg = sys.argv[1]
+    interface = sys.argv[2]
+    packet_count = int(sys.argv[3])
+
+    capture_packets(interface, filter_arg, packet_count)
