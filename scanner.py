@@ -2,12 +2,10 @@ from scapy.all import sniff
 
 # Function to parse Ethernet header from hex data
 def parse_ethernet_header(hex_data):
-    # Ethernet header is the first 14 bytes (28 hex characters)
     dest_mac = hex_data[0:12]
     source_mac = hex_data[12:24]
     ether_type = hex_data[24:28]
 
-    # Convert hex MAC addresses to human-readable format
     dest_mac_readable = ':'.join(dest_mac[i:i+2] for i in range(0, 12, 2))
     source_mac_readable = ':'.join(source_mac[i:i+2] for i in range(0, 12, 2))
 
@@ -28,7 +26,6 @@ def parse_arp_header(hex_data):
     target_mac = hex_data[64:76]
     target_ip = hex_data[76:84]
 
-    # Convert IPs and MACs to readable format
     sender_mac_readable = ':'.join(sender_mac[i:i + 2] for i in range(0, 12, 2))
     sender_ip_readable = '.'.join(str(int(sender_ip[i:i + 2], 16)) for i in range(0, 8, 2))
     target_mac_readable = ':'.join(target_mac[i:i + 2] for i in range(0, 12, 2))
@@ -45,28 +42,20 @@ def parse_arp_header(hex_data):
     print(f"  Target MAC: {target_mac_readable}")
     print(f"  Target IP: {target_ip_readable}")
 
-
 # Function to handle each captured packet
 def packet_callback(packet):
-    # Convert the raw packet to hex format
     raw_data = bytes(packet)
     hex_data = raw_data.hex()
 
-    # Process the Ethernet header
     print(f"Captured Packet (Hex): {hex_data}")
     parse_ethernet_header(hex_data)
 
-    # Parse ARP, IPv4, TCP, or UDP based on EtherType
     ether_type = hex_data[24:28]
-
     if ether_type == '0806':  # ARP
         parse_arp_header(hex_data)
     elif ether_type == '0800':  # IPv4
         parse_ipv4_header(hex_data)
-        # After parsing IPv4, you can decide to parse TCP or UDP based on the protocol field
-
     print("-" * 50)
-
 
 # IPv4 Header Parsing
 def parse_ipv4_header(hex_data):
@@ -87,19 +76,22 @@ def parse_ipv4_header(hex_data):
     elif protocol == '11':  # UDP
         parse_udp_header(hex_data)
 
-
 # TCP Header Parsing
 def parse_tcp_header(hex_data):
     src_port = hex_data[68:72]
     dest_port = hex_data[72:76]
-    flags = hex_data[94:96]
+    seq_num = hex_data[76:84]
+    ack_num = hex_data[84:92]
+    offset_reserved_flags = hex_data[92:96]
+    flags = offset_reserved_flags[3:]  # Last byte contains the flags
     flags_binary = bin(int(flags, 16))[2:].zfill(8)  # Convert flags to binary
 
     print(f"TCP Header:")
     print(f"  Source Port: {int(src_port, 16)}")
     print(f"  Destination Port: {int(dest_port, 16)}")
+    print(f"  Sequence Number: {int(seq_num, 16)}")
+    print(f"  Acknowledgment Number: {int(ack_num, 16)}")
     print(f"  Flags: {flags_binary} (Binary)")
-
 
 # UDP Header Parsing
 def parse_udp_header(hex_data):
@@ -110,11 +102,9 @@ def parse_udp_header(hex_data):
     print(f"  Source Port: {int(src_port, 16)}")
     print(f"  Destination Port: {int(dest_port, 16)}")
 
-
 # Capture packets on a specified interface using a custom filter
 def capture_packets(interface, capture_filter, packet_count):
     print(f"Starting packet capture on {interface} with filter: {capture_filter}")
     sniff(iface=interface, filter=capture_filter, prn=packet_callback, count=packet_count)
 
-
-capture_packets('wlp2s0', 'arp or tcp port 80 or udp', 5)
+capture_packets('wlp2s0', 'arp or tcp or udp', 5)
